@@ -26,10 +26,23 @@ export class ITextPacket {
     consola.debug("[DEBUG] Receive text packet:\n", this.obj);
 
     await this.checkVersion();
-    if (this.obj.ltoken) await this.validateLtoken();
+    if (this.obj.ltoken) {
+      await this.validateLtoken();
+    }
 
     if (this.obj.tankIDName && this.obj.tankIDPass) {
       await this.validateRefreshToken();
+      // Welcome text
+      this.peer.send(
+        Variant.from(
+          "OnConsoleMessage",
+          `Connected to \`0${process.env.SERVER_NAME ? process.env.SERVER_NAME : "GrowServer"}\`\`.`
+        ),
+        Variant.from(
+          "OnConsoleMessage",
+          `Welcome back, \`2${this.obj.tankIDName ? this.obj.tankIDName : "Warrior"}\`\`! Enjoy your adventure on our private server. Have fun and make new memories!`
+        )
+      );
     }
   }
 

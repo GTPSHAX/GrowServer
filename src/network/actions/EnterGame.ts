@@ -15,12 +15,12 @@ export class EnterGame {
   ): Promise<void> {
     const tes = new DialogBuilder()
       .defaultColor()
-      .addLabelWithIcon("`wThe GrowServer Gazette``", "5016", "big")
+      .addLabelWithIcon(`\`wThe ${process.env.SERVER_NAME ? process.env.SERVER_NAME : "GrowServer"} Gazette\`\``, "5016", "big")
       .addSpacer("small")
       .raw(
         "add_image_button||interface/banner-transparent.rttex|bannerlayout|||\n"
       )
-      .addTextBox("Welcome to GrowServer")
+      .addTextBox(`Welcome to ${process.env.SERVER_NAME ? process.env.SERVER_NAME : "GrowServer"}`)
       .addQuickExit()
       .endDialog("gazzette_end", "Cancel", "Ok")
       .str();
