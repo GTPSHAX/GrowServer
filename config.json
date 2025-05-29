@@ -1,10 +1,10 @@
 {
   "web": {
     "development": true,
-    "address": "127.0.0.1",
+    "address": "18.141.194.161",
     "port": 443,
     "ports": [17091],
-    "loginUrl": "login.growserver.app:8080",
+    "loginUrl": "osm.growplus.asia:8000",
     "maintenance": {
       "enable": false,
       "message": "Maintenance Woi"
@@ -17,10 +17,10 @@
   },
   "webFrontend": {
     "root": "./.cache/website",
-    "port": 8080,
+    "port": 8000,
     "tls": {
-      "key": "./.cache/ssl/_wildcard.growserver.app-key.pem",
-      "cert": "./.cache/ssl/_wildcard.growserver.app.pem"
+      "key": "./.cache/ssl/osm.growplus.asia-key.pem",
+      "cert": "./.cache/ssl/osm.growplus.asia-crt.pem"
     }
   },
   "server": {
