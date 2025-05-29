@@ -53,7 +53,7 @@ ${this.peer.data.lastVisitedWorlds
       ),
       Variant.from(
         "OnConsoleMessage",
-        `Welcome ${this.peer.name} Where would you like to go?`
+        `Welcome ${this.peer.name}, where would you like to go? (\`0${(await this.base.getActivePlayers()).length} \`\`online)`
       ),
       Variant.from({ delay: 100 }, "OnDialogRequest", tes)
     );
