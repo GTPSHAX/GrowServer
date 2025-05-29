@@ -3,11 +3,13 @@ import { createClient } from "@libsql/client";
 
 import { WorldDB } from "./handlers/World";
 import { PlayerDB } from "./handlers/Player";
+import { UpdateDB } from "./handlers/Update";
 
 export class Database {
   public db;
   public players;
   public worlds;
+  public updates;
 
   constructor() {
     const sqlite = createClient({
@@ -17,5 +19,6 @@ export class Database {
 
     this.players = new PlayerDB(this.db);
     this.worlds = new WorldDB(this.db);
+    this.updates = new UpdateDB(this.db);
   }
 }
