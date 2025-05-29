@@ -5,6 +5,7 @@ import { PacketTypes, TankTypes } from "../Constants";
 import { Peer } from "./Peer";
 import { tileParse } from "../world/tiles";
 import { Default } from "../world/generation/Default";
+import { Forest } from "../world/generation/Forest";
 
 export class World {
   public data: WorldData;
@@ -40,7 +41,7 @@ export class World {
     else return await this.base.database.worlds.set(this.data);
   }
 
-  public leave(peer: Peer, sendMenu = true) {
+  public async leave(peer: Peer, sendMenu = true) {
     this.data.playerCount = this.data.playerCount
       ? this.data.playerCount - 1
       : 0;
@@ -117,7 +118,7 @@ ${peer.data.lastVisitedWorlds
         Variant.from(
           { delay: 500 },
           "OnConsoleMessage",
-          "Where do you want to go?"
+          `Where do you want to go? (\`0${(await this.base.getActivePlayers()).length} \`\`online)`
         )
       );
 
@@ -130,7 +131,7 @@ ${peer.data.lastVisitedWorlds
     }
   }
 
-  public async getData() {
+  public async getData(peer: Peer) {
     if (!this.base.cache.worlds.has(this.worldName)) {
       const world = await this.base.database.worlds.get(this.worldName);
       if (world) {
@@ -149,7 +150,7 @@ ${peer.data.lastVisitedWorlds
           weatherId: world.weather_id || 41
         };
       } else {
-        await this.generate(true);
+        await this.generate(peer, true);
       }
     } else this.data = this.base.cache.worlds.get(this.worldName) as WorldData;
   }
@@ -194,7 +195,7 @@ ${peer.data.lastVisitedWorlds
   }
 
   public async enter(peer: Peer, x: number, y: number) {
-    await this.getData();
+    await this.getData(peer);
 
     if (typeof x !== "number") x = -1;
     if (typeof y !== "number") y = -1;
@@ -410,9 +411,10 @@ ${peer.data.lastVisitedWorlds
     peer.saveToCache();
   }
 
-  public async generate(cache?: boolean) {
+  public async generate(peer: Peer, cache?: boolean) {
     if (!this.worldName) throw new Error("World name required.");
-    const worldGen = new Default(this.worldName);
+    //const worldGen = new Default(this.worldName);
+    const worldGen = new Forest(this.worldName);
 
     await worldGen.generate();
     this.data = worldGen.data;

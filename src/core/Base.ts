@@ -33,6 +33,7 @@ import { mkdir, writeFile, readFile } from "fs/promises";
 import chokidar from "chokidar";
 import ky from "ky";
 import { ITEMS_DAT_FETCH_URL } from "../Constants";
+import { Forest } from "../world/generation/Forest";
 __dirname = process.cwd();
 
 export class Base {
@@ -369,5 +370,17 @@ export class Base {
     consola.info("Shutting down server...");
     await this.saveAll(true);
     process.exit(0);
+  }
+
+  public async getActivePlayers() {
+    const activePlayers = [];
+    for (const [, peer] of this.cache.peers) {
+      if (!peer.id_user) continue;
+      activePlayers.push({
+        netID: peer.netID,
+        id:    peer.id_user
+      });
+    }
+    return activePlayers;
   }
 }
