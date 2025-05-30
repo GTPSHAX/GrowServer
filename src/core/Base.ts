@@ -128,7 +128,7 @@ export class Base {
       });
 
       await this.loadItems();
-      await generateItemsEnumDefinition(this.items.metadata);
+      generateItemsEnumDefinition(this.items.metadata);
       await this.loadEvents();
     } catch (err) {
       consola.error(`Failed to start server: ${err}`);
