@@ -9,7 +9,7 @@ import {
   setupWebsite,
   downloadItemsDat,
   fetchJSON,
-  generateItemsEnumDefinition,
+  generateItemsJsonDefinition,
 } from "../utils/Utils";
 import { join } from "path";
 import { ConnectListener } from "../events/Connect";
@@ -128,7 +128,7 @@ export class Base {
       });
 
       await this.loadItems();
-      generateItemsEnumDefinition(this.items.metadata);
+      generateItemsJsonDefinition(this.items.metadata);
       await this.loadEvents();
     } catch (err) {
       consola.error(`Failed to start server: ${err}`);

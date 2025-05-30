@@ -109,14 +109,15 @@ export async function downloadItemsDat(itemsDatName: string) {
   await downloadFile(`${ITEMS_DAT_URL}/${itemsDatName}`, join(__dirname, ".cache", "growtopia", "dat", itemsDatName));
 }
 
-export async function generateItemsEnumDefinition(data: ItemsDatMeta): Promise<void> {
+export async function generateItemsJsonDefinition(data: ItemsDatMeta): Promise<void> {
   if (!data?.items?.length) {
     throw new Error("Invalid data: items array is required and cannot be empty");
   }
-
+  
   try {
-    const targetDir = join(__dirname, "src", "enums", "items");
+    const targetDir = join(__dirname, "src", "defs", "items");
     mkdirSync(targetDir, { recursive: true });
+    
     const groups = {
       Foreground: [] as ItemDefinition[],
       Background: [] as ItemDefinition[],
@@ -181,14 +182,14 @@ export async function generateItemsEnumDefinition(data: ItemsDatMeta): Promise<v
 
     for (const [groupName, items] of Object.entries(groups)) {
       if (items.length === 0) continue;
-
+      
       const lines = [
         '// Auto-generated file',
         `// Generated at: ${new Date().toISOString()}`,
         '',
-        `export enum ITEMID_${groupName.toUpperCase()} {`
+        `export const ITEMID_${groupName.toUpperCase()} = {`
       ];
-
+      
       const usedKeys = new Set<string>();
       
       for (const item of items) {
@@ -197,38 +198,40 @@ export async function generateItemsEnumDefinition(data: ItemsDatMeta): Promise<v
           continue;
         }
         
-        let enumKey = item.name
+        let dataKey = item.name
           .toUpperCase()
           .replace(/[^A-Z0-9_]/g, '_')
           .replace(/_{2,}/g, '_')
           .replace(/^_+|_+$/g, '');
-
-        // Handle numeric names by adding prefix
-        if (/^\d/.test(enumKey)) {
-          enumKey = `ITEM_${enumKey}`;
+        
+        if (/^\d/.test(dataKey)) {
+          dataKey = `ITEM_${dataKey}`;
         }
-
-        if (!enumKey) {
-          console.warn(`Skipping item "${item.name}": invalid enum key after sanitization`);
+        
+        if (!dataKey) {
+          console.warn(`Skipping item "${item.name}": invalid key after sanitization`);
           continue;
         }
         
-        if (usedKeys.has(enumKey)) {
-          enumKey = `${enumKey}_${item.id}`;
+        if (usedKeys.has(dataKey)) {
+          dataKey = `${dataKey}_${item.id}`;
         }
         
-        usedKeys.add(enumKey);
-        lines.push(`  ${enumKey} = ${item.id},`);
+        usedKeys.add(dataKey);
+        lines.push(`  ${dataKey}: ${item.id},`);
       }
-
-      lines.push('}');
-
-      const targetPath = join(targetDir, `ItemsID${groupName}.ts`);
+      
+      lines.push('} as const;');
+      lines.push('');
+      lines.push(`export default ITEMID_${groupName.toUpperCase()};`);
+      
+      const targetPath = join(targetDir, `ItemID${groupName}.ts`);
       writeFileSync(targetPath, lines.join('\n'), "utf-8");
     }
+    
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    consola.error("Failed to generate items definition:", errorMessage);
+    consola.error("Failed to generate items JSON definition:", errorMessage);
     throw error;
   }
 }
