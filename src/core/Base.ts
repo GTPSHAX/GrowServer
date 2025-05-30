@@ -9,6 +9,7 @@ import {
   setupWebsite,
   downloadItemsDat,
   fetchJSON,
+  generateItemsEnumDefinition,
 } from "../utils/Utils";
 import { join } from "path";
 import { ConnectListener } from "../events/Connect";
@@ -33,7 +34,7 @@ import { mkdir, writeFile, readFile } from "fs/promises";
 import chokidar from "chokidar";
 import ky from "ky";
 import { ITEMS_DAT_FETCH_URL } from "../Constants";
-import { Forest } from "../world/generation/Forest";
+
 __dirname = process.cwd();
 
 export class Base {
@@ -127,6 +128,7 @@ export class Base {
       });
 
       await this.loadItems();
+      await generateItemsEnumDefinition(this.items.metadata);
       await this.loadEvents();
     } catch (err) {
       consola.error(`Failed to start server: ${err}`);

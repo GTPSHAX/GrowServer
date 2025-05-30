@@ -1,4 +1,4 @@
-import { createWriteStream, existsSync, mkdirSync, readdirSync, unlinkSync } from "fs";
+import { createWriteStream, existsSync, mkdirSync, readdirSync, unlinkSync, writeFile, writeFileSync } from "fs";
 import { join } from "path";
 import consola from "consola";
 import { execSync } from "child_process";
@@ -6,6 +6,7 @@ import net from "net";
 import ky from "ky";
 import decompress from "decompress";
 import { ITEMS_DAT_URL, weatherIdMap } from "../Constants";
+import { ItemDefinition, ItemsDatMeta } from "growtopia.js";
 
 __dirname = process.cwd();
 
@@ -106,6 +107,64 @@ export async function downloadItemsDat(itemsDatName: string) {
 
   consola.info(`Downloading items.dat version ${currentVersion}`);
   await downloadFile(`${ITEMS_DAT_URL}/${itemsDatName}`, join(__dirname, ".cache", "growtopia", "dat", itemsDatName));
+}
+
+export async function generateItemsEnumDefinition(data: ItemsDatMeta): Promise<void> {
+  if (!data?.items?.length) {
+    throw new Error("Invalid data: items array is required and cannot be empty");
+  }
+
+  try {
+    const targetDir = join(__dirname, "src");
+    const targetPath = join(targetDir, "ItemsDefinition.ts");
+    
+    const enumContent = generateEnumContent(data.items);
+    writeFileSync(targetPath, enumContent, "utf-8");
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    consola.error("Failed to generate items definition:", errorMessage);
+    throw error;
+  }
+}
+
+function generateEnumContent(items: Array<ItemDefinition>): string {
+  const lines = ["// Auto generation file\nexport enum ITEM_ID {"];
+  const usedKeys = new Set<string>();
+  
+  for (const item of items) {
+    if (!item.name) {
+      console.warn(`Skipping item with id ${item.id}: missing name`);
+      continue;
+    }
+    
+    let enumKey = sanitizeEnumKey(item.name);
+    if (!enumKey) {
+      console.warn(`Skipping item "${item.name}": invalid enum key after sanitization`);
+      continue;
+    }
+    
+    if (usedKeys.has(enumKey)) {
+      const originalKey = enumKey;
+      enumKey = `${enumKey}_${item.id}`;
+      // console.warn(`Duplicate enum key "${originalKey}" for item "${item.name}" (id: ${item.id}), using "${enumKey}" instead`);
+    }
+    
+    usedKeys.add(enumKey);
+    lines.push(`  ${enumKey} = ${item.id},`);
+  }
+
+  lines.push("}");
+  return lines.join("\n");
+}
+
+function sanitizeEnumKey(name: string): string {
+  return name
+    .trim()
+    .replace(/[^a-zA-Z0-9_]/g, "_") // Replace non-alphanumeric chars with underscore
+    .replace(/_+/g, "_") // Collapse multiple underscores
+    .replace(/^_+|_+$/g, "") // Remove leading/trailing underscores
+    .replace(/^(\d)/, "_$1") // Prefix with underscore if starts with number
+    .toUpperCase();
 }
 
 export async function downloadMkcert() {
