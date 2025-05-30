@@ -4,61 +4,61 @@ import { Block, WorldData } from "../../types";
 import { WorldGen } from "../WorldGen";
 
 const cnf = {
-  width: 250,
+  width:  250,
   height: 50,
-  grass: {
+  grass:  {
     land: [16, 880, 954, 188, 190, 192, 194],
-    sea: [846, 3584]
+    sea:  [846, 3584]
   },
   tree: {
     seeds: [4585, 243, 407, 5667, 341]
   },
   temple: {
-    config: { width: 11, height: 8, style: 'temple' } as StructureConfig,
-    door: [224], // House Entrance
-    walls: [8652], // Bountiful Jungle Temple Background
-    floor: [8646], // Bountiful Jungle Temple
-    pillars: [8664], // Bountiful Jungle Temple Pillar
-    roof: [8646], // Bountiful Jungle Temple
-    steps: [8646, 8652], // Bountiful Jungle Temple, Bountiful Jungle Temple Background
-    statues: [988, 714], // Gargoyle, Olmec Head
-    torches: [696], // Torch
-    ornaments: [8646, 8652, 8694, 8706], // Bountiful Jungle Temple, Bountiful Jungle Temple Background, Bountiful White Doll's Eyes, Bountiful Corpse Flower
-    entrance: [8658], // Bountiful Jungle Temple Door
+    config:     { width: 11, height: 8, style: 'temple' } as StructureConfig,
+    door:       [224], // House Entrance
+    walls:      [8652], // Bountiful Jungle Temple Background
+    floor:      [8646], // Bountiful Jungle Temple
+    pillars:    [8664], // Bountiful Jungle Temple Pillar
+    roof:       [8646], // Bountiful Jungle Temple
+    steps:      [8646, 8652], // Bountiful Jungle Temple, Bountiful Jungle Temple Background
+    statues:    [988, 714], // Gargoyle, Olmec Head
+    torches:    [696], // Torch
+    ornaments:  [8646, 8652, 8694, 8706], // Bountiful Jungle Temple, Bountiful Jungle Temple Background, Bountiful White Doll's Eyes, Bountiful Corpse Flower
+    entrance:   [8658], // Bountiful Jungle Temple Door
     foundation: [8664], // Bountiful Jungle Temple Pillar
-    bonus: {
-      block: [120], // Mystery Block
+    bonus:      {
+      block:   [120], // Mystery Block
       dropped: [[242, 10], [2, 20]]
     }
   },
   castle: {
-    config: { width: 11, height: 7, style: 'castle' } as StructureConfig,
-    walls: [104], // Rock background
-    floor: [336], // Stone wall
-    windows: [54, 56], // Window, Glass Pane
-    gates: [684, 686], // Iron Bars, Jail Door
-    towers: [682, 116], // Blackrock Wall, Bricks
-    flags: [860], // Wrought-Iron Fence
+    config:     { width: 11, height: 7, style: 'castle' } as StructureConfig,
+    walls:      [104], // Rock background
+    floor:      [336], // Stone wall
+    windows:    [54, 56], // Window, Glass Pane
+    gates:      [684, 686], // Iron Bars, Jail Door
+    towers:     [682, 116], // Blackrock Wall, Bricks
+    flags:      [860], // Wrought-Iron Fence
     decoration: [988, 696], // Gargoyle, Torch
     foundation: [336], // Stoqne wall
-    bonus: {
-      block: [120], // Mystery Block
+    bonus:      {
+      block:   [120], // Mystery Block
       dropped: [[242, 10], [2, 20]]
     }
   },
   house: {
-    config: { width: 7, height: 4, style: 'house' } as StructureConfig,
-    walls: [52, 118], // Wooden Background, Brick Background
-    roof: [116, 100], // Bricks, Wood Block
-    windows: [54, 58], // Window, Wooden Window
-    door: [224], // House Entrance
-    floor: [102, 100], // Wooden Platform, Wood Block
-    chimney: [116, 248], // Bricks, Evil Bricks
-    furniture: [120, 458], // Mystery Block, Dresser
+    config:     { width: 7, height: 4, style: 'house' } as StructureConfig,
+    walls:      [52, 118], // Wooden Background, Brick Background
+    roof:       [116, 100], // Bricks, Wood Block
+    windows:    [54, 58], // Window, Wooden Window
+    door:       [224], // House Entrance
+    floor:      [102, 100], // Wooden Platform, Wood Block
+    chimney:    [116, 248], // Bricks, Evil Bricks
+    furniture:  [120, 458], // Mystery Block, Dresser
     decoration: [192, 194], // Bush
     foundation: [102, 100], // Wooden Platform, Wood Block
-    bonus: {
-      block: [120], // Mystery Block
+    bonus:      {
+      block:   [120], // Mystery Block
       dropped: [[242, 10], [2, 20]]
     }
   }
@@ -780,14 +780,14 @@ export class Forest extends WorldGen {
         }
         
         this.data.dropped?.items?.push({
-          id: droppedItem[0],
+          id:     droppedItem[0],
           amount: droppedItem[1],
-          block: {
+          block:  {
             x: dropPos.x,
             y: dropPos.y
           },
-          x: dropPos.x,
-          y: dropPos.y,
+          x:   dropPos.x,
+          y:   dropPos.y,
           uid: this.data.dropped?.items?.length || 0
         });
       }

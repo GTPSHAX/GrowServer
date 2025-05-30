@@ -19,6 +19,7 @@ export interface Block {
   mannequin?: Mannequin;
   dice?: number;
   provider?: Provider;
+  flags?: TileFlags;
 }
 
 export interface Provider {
