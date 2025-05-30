@@ -1,15 +1,73 @@
 import { randomInt } from "crypto";
-import { Y_END_DIRT, Y_LAVA_START, Y_START_DIRT } from "../../Constants";
+import { TileFlags, Y_END_DIRT, Y_LAVA_START, Y_START_DIRT } from "../../Constants";
 import { Block, WorldData } from "../../types";
 import { WorldGen } from "../WorldGen";
 
-const configuration = {
-  grass: [
-    16, 880, 954, 188, 190, 192, 194
-  ],
-  special_seeds: [
-    4585, 243, 2735, 427, 5667, 341
-  ]
+const cnf = {
+  width: 250,
+  height: 50,
+  grass: {
+    land: [16, 880, 954, 188, 190, 192, 194],
+    sea: [846, 3584]
+  },
+  tree: {
+    seeds: [4585, 243, 407, 5667, 341]
+  },
+  temple: {
+    config: { width: 11, height: 8, style: 'temple' } as StructureConfig,
+    door: [224], // House Entrance
+    walls: [8652], // Bountiful Jungle Temple Background
+    floor: [8646], // Bountiful Jungle Temple
+    pillars: [8664], // Bountiful Jungle Temple Pillar
+    roof: [8646], // Bountiful Jungle Temple
+    steps: [8646, 8652], // Bountiful Jungle Temple, Bountiful Jungle Temple Background
+    statues: [988, 714], // Gargoyle, Olmec Head
+    torches: [696], // Torch
+    ornaments: [8646, 8652, 8694, 8706], // Bountiful Jungle Temple, Bountiful Jungle Temple Background, Bountiful White Doll's Eyes, Bountiful Corpse Flower
+    entrance: [8658], // Bountiful Jungle Temple Door
+    foundation: [8664], // Bountiful Jungle Temple Pillar
+    bonus: {
+      block: [120], // Mystery Block
+      dropped: [[242, 10], [2, 20]]
+    }
+  },
+  castle: {
+    config: { width: 11, height: 7, style: 'castle' } as StructureConfig,
+    walls: [104], // Rock background
+    floor: [336], // Stone wall
+    windows: [54, 56], // Window, Glass Pane
+    gates: [684, 686], // Iron Bars, Jail Door
+    towers: [682, 116], // Blackrock Wall, Bricks
+    flags: [860], // Wrought-Iron Fence
+    decoration: [988, 696], // Gargoyle, Torch
+    foundation: [336], // Stoqne wall
+    bonus: {
+      block: [120], // Mystery Block
+      dropped: [[242, 10], [2, 20]]
+    }
+  },
+  house: {
+    config: { width: 7, height: 4, style: 'house' } as StructureConfig,
+    walls: [52, 118], // Wooden Background, Brick Background
+    roof: [116, 100], // Bricks, Wood Block
+    windows: [54, 58], // Window, Wooden Window
+    door: [224], // House Entrance
+    floor: [102, 100], // Wooden Platform, Wood Block
+    chimney: [116, 248], // Bricks, Evil Bricks
+    furniture: [120, 458], // Mystery Block, Dresser
+    decoration: [192, 194], // Bush
+    foundation: [102, 100], // Wooden Platform, Wood Block
+    bonus: {
+      block: [120], // Mystery Block
+      dropped: [[242, 10], [2, 20]]
+    }
+  }
+};
+
+interface StructureConfig {
+  width: number;
+  height: number;
+  style: 'temple' | 'castle' | 'house';
 }
 
 interface TreeConfig {
@@ -27,8 +85,8 @@ interface LeafGeneration {
 
 export class Forest extends WorldGen {
   public data: WorldData;
-  public width = 200;
-  public height = 60;
+  public width = cnf.width;
+  public height = cnf.height;
   public blockCount = this.height * this.width;
 
   private seed: number;
@@ -38,6 +96,8 @@ export class Forest extends WorldGen {
     super(name);
 
     this.seed = seed ?? this.stringToSeed(name);
+    // this.seed = 3139;
+    console.info(`Seed: ${this.seed}`);
     this.randoms = this.createRandomGenerators();
     this.data = this.initializeWorldData(name);
   }
@@ -62,19 +122,19 @@ export class Forest extends WorldGen {
       playerCount: 0,
       jammers:     [],
       dropped:     { uid: 0, items: [] },
-      weatherId:   41
+      weatherId:   37
     };
   }
 
   private stringToSeed(str: string): number {
-    if (!str.length) return 1;
+    if (!str.length) return 3000;
 
     let hash = str.split('').reduce((acc, char) =>
       ((acc << 5) - acc) + char.charCodeAt(0) | 0, 0
     );
 
-    hash = Math.abs(hash) || 1;
-    return ((hash & 0x1FFF) % 5000) + 1;
+    hash = Math.abs(hash) || 3000;
+    return ((hash & 0x1FFF) % 10000) + 1;
   }
 
   private seededRandom(seed: number): () => number {
@@ -141,7 +201,8 @@ export class Forest extends WorldGen {
       for (let d = 0; d < depthHere; d++) {
         const waterY = surfaceY + d;
         if (waterY < this.height && blocks[waterY]?.[x]) {
-          blocks[waterY][x].fg = 822; // Water
+          blocks[waterY][x].fg = 0; // Water
+          blocks[waterY][x].flags |= TileFlags.WATER; // Water
           blocks[waterY][x].bg = 14;  // Cave background
           terrainHeights[x] = Math.max(terrainHeights[x], waterY + 1);
         }
@@ -221,8 +282,8 @@ export class Forest extends WorldGen {
 
   private generateSpecialTree(blocks: Block[][], centerX: number, surfaceY: number) {
     const treeY = surfaceY - 1;
-    if (treeY >= 0 && blocks[treeY]?.[centerX]?.fg === 0) {
-      blocks[treeY][centerX].fg = configuration.special_seeds[randomInt(configuration.special_seeds.length)]; // Tree block
+    if (treeY >= 0 && blocks[treeY]?.[centerX]?.fg === 0 && !(blocks[treeY]?.[centerX]?.flags & TileFlags.WATER) && blocks[treeY + 1]?.[centerX]?.fg === 2) {
+      blocks[treeY][centerX].fg = cnf.tree.seeds[randomInt(cnf.tree.seeds.length)]; // Tree block
     }
 
     // Add grass around base
@@ -233,7 +294,9 @@ export class Forest extends WorldGen {
         blocks[surfaceY - 1]?.[grassX]?.fg === 0 &&
         [2, 442].includes(blocks[surfaceY]?.[grassX]?.fg) &&
         this.randoms.tree() > 0.6) {
-        blocks[surfaceY - 1][grassX].fg = configuration.grass[randomInt(configuration.grass.length)]; // Grass
+        blocks[surfaceY - 1][grassX].fg = blocks[surfaceY - 1][grassX].flags & TileFlags.WATER ?
+          cnf.grass.sea[randomInt(cnf.grass.sea.length)] :
+          cnf.grass.land[randomInt(cnf.grass.land.length)]; // Grass block
       }
     }
   }
@@ -390,113 +453,393 @@ export class Forest extends WorldGen {
         [2, 442].includes(blocks[surfaceY]?.[x]?.fg) &&
         blocks[surfaceY - 1]?.[x]?.fg === 0 &&
         this.randoms.grass() > 0.25) {
-        blocks[surfaceY - 1][x].fg = configuration.grass[randomInt(0, configuration.grass.length)]; // Grass
+        blocks[surfaceY - 1][x].fg = blocks[surfaceY - 1][x].flags & TileFlags.WATER?
+          cnf.grass.sea[randomInt(cnf.grass.sea.length)] :
+          cnf.grass.land[randomInt(cnf.grass.land.length)]; // Grass block
       }
     });
   }
 
-  private generateStructure(blocks: Block[][], x: number, y: number, type: 'house' | 'castle') {
-    if (type === 'house') {
-      this.generateHouse(blocks, x, y);
-    } else {
-      this.generateCastle(blocks, x, y);
+  private generateStructure(blocks: Block[][], x: number, y: number, type: 'house' | 'castle' | 'temple') {
+    console.log(`Generating structure: ${type} at ${x}, ${y}`);
+    
+    switch (type) {
+      case 'temple':
+        this.generateTemple(blocks, x, y, cnf.temple.config);
+        break;
+      case 'castle':
+        this.generateEnhancedCastle(blocks, x, y, cnf.castle.config);
+        break;
+      case 'house':
+        this.generateEnhancedHouse(blocks, x, y, cnf.house.config); // Fix: use cnf.house.config
+        break;
     }
   }
 
-  private generateHouse(blocks: Block[][], x: number, y: number) {
-    // Roof
-    for (let i = -4; i <= 4; i++) {
-      if (blocks[y]?.[x - i]) blocks[y][x - i].fg = 116;
-    }
-
-    // Corner roof blocks
-    [[-4], [-5], [4], [5]].forEach(([offset]) => {
-      if (blocks[y]?.[x + offset]) blocks[y][x + offset].fg = 2;
-    });
-
-    // Chimney
-    for (let j = 0; j <= 2; j++) {
-      if (blocks[y - j]?.[x - 3]) blocks[y - j][x - 3].fg = 116;
-    }
-
-    // Walls with windows
-    for (let j = 1; j <= 3; j++) {
-      for (let i = -3; i <= 3; i++) {
-        if (blocks[y - j]?.[x + i]) {
-          blocks[y - j][x + i].fg = (Math.abs(i) === 1 && j % 2 === 0) ? 54 : 52;
+  private generateTemple(blocks: Block[][], x: number, y: number, config: StructureConfig) {
+    const { width, height } = config;
+    const halfWidth = Math.floor(width / 2);
+    
+    // Check foundation
+    if (!this.isValidFoundation(blocks, x, y, width)) return;
+  
+    // Generate steps leading up to temple
+    for (let step = 0; step < 3; step++) {
+      for (let i = -(halfWidth + 2 - step); i <= (halfWidth + 2 - step); i++) {
+        if (blocks[y + step]?.[x + i]) {
+          blocks[y + step][x + i].fg = this.getRandomBlock(cnf.temple.steps);
         }
       }
     }
-
-    // Entrance and foundation
-    if (blocks[y - 1]?.[x]) blocks[y - 1][x].fg = 224;
-    if (blocks[y - 1]?.[x - 1]) blocks[y - 1][x - 1].fg = 120; // Chest
-
-    for (let i = -3; i <= 3; i++) {
-      if (blocks[y - 4]?.[x - i]) blocks[y - 4][x - i].fg = 116;
+  
+    // Main structure with pyramid-like shape
+    for (let j = 0; j < height; j++) {
+      const levelWidth = width - Math.floor(j * 0.5);
+      const levelHalfWidth = Math.floor(levelWidth / 2);
+      
+      for (let i = -levelHalfWidth; i <= levelHalfWidth; i++) {
+        if (blocks[y - j]?.[x + i]) {
+          // Columns at periodic intervals
+          if (i % 3 === 0 && j < height - 1) {
+            blocks[y - j][x + i].fg = this.getRandomBlock(cnf.temple.pillars);
+          }
+          // Walls with varied patterns
+          else {
+            const isEdge = Math.abs(i) === levelHalfWidth;
+            const isTop = j === height - 1;
+            blocks[y - j][x + i].fg = isEdge || isTop ? 
+              this.getRandomBlock(cnf.temple.ornaments) : 
+              this.getRandomBlock(cnf.temple.walls);
+          }
+        }
+      }
+    }
+  
+    // Add decorative elements
+    this.addTempleDecorations(blocks, x, y, width, height);
+    
+    // Generate bonus items
+    this.generateBuildingBonus(blocks, x, y, 'temple');
+  }  
+  
+  private addTempleDecorations(blocks: Block[][], x: number, y: number, width: number, height: number) {
+    const halfWidth = Math.floor(width / 2);
+  
+    // Central statue
+    if (blocks[y - 2]?.[x]) {
+      blocks[y - 2][x].fg = this.getRandomBlock(cnf.temple.statues);
+    }
+  
+    // Torches with random placement
+    for (let i = -halfWidth + 1; i <= halfWidth - 1; i += 2) {
+      if (this.randoms.general() > 0.5 && blocks[y - 3]?.[x + i]) {
+        blocks[y - 3][x + i].fg = cnf.temple.torches[0];
+      }
+    }
+  
+    // Entrance with ornate design
+    if (blocks[y - 1]?.[x]) {
+      blocks[y - 1][x].fg = cnf.temple.entrance[0];
+      // Add entrance decorations
+      if (blocks[y - 2]?.[x - 1]) blocks[y - 2][x - 1].fg = this.getRandomBlock(cnf.temple.ornaments);
+      if (blocks[y - 2]?.[x + 1]) blocks[y - 2][x + 1].fg = this.getRandomBlock(cnf.temple.ornaments);
     }
   }
 
-  private generateCastle(blocks: Block[][], x: number, y: number) {
-    // Corner blocks
-    [[-4], [-5], [4], [5]].forEach(([offset]) => {
-      if (blocks[y]?.[x + offset]) blocks[y][x + offset].fg = 2;
-    });
-
-    // Main tower
-    for (let i = -3; i <= 3; i++) {
-      for (let j = 0; j <= 6; j++) {
-        if (blocks[y - j]?.[x - i]) blocks[y - j][x - i].fg = 116;
+  private generateEnhancedCastle(blocks: Block[][], x: number, y: number, config: StructureConfig) {
+    const { width, height } = config;
+    const halfWidth = Math.floor(width / 2);
+  
+    // Check foundation
+    if (!this.isValidFoundation(blocks, x, y, width)) return;
+  
+    // Generate foundation
+    for (let i = -halfWidth - 1; i <= halfWidth + 1; i++) {
+      for (let j = 0; j < 2; j++) {
+        if (blocks[y + j]?.[x + i]) {
+          blocks[y + j][x + i].fg = this.getRandomBlock(cnf.castle.foundation);
+        }
       }
     }
-
-    // Side towers
-    for (let j = 0; j <= 5; j++) {
-      if (blocks[y - j]?.[x + 4]) blocks[y - j][x + 4].fg = 116;
-      if (blocks[y - j]?.[x - 4]) blocks[y - j][x - 4].fg = 116;
+  
+    // Main keep with irregular shape
+    for (let j = 0; j < height; j++) {
+      const irregularity = Math.floor(this.randoms.general() * 2);
+      const levelWidth = width + irregularity;
+      const levelHalfWidth = Math.floor(levelWidth / 2);
+  
+      for (let i = -levelHalfWidth; i <= levelHalfWidth; i++) {
+        if (blocks[y - j]?.[x + i]) {
+          // Tower sections
+          if (i === -levelHalfWidth || i === levelHalfWidth) {
+            blocks[y - j][x + i].fg = this.getRandomBlock(cnf.castle.towers);
+          }
+          // Windows with random placement
+          else if (j % 2 === 1 && this.randoms.general() > 0.7) {
+            blocks[y - j][x + i].fg = this.getRandomBlock(cnf.castle.windows);
+          }
+          // Walls with varied materials
+          else {
+            blocks[y - j][x + i].fg = this.getRandomBlock(cnf.castle.walls);
+          }
+        }
+      }
     }
-
-    // Flags and chest
-    if (blocks[y - 6]?.[x + 4]) blocks[y - 6][x + 4].fg = 860;
-    if (blocks[y - 6]?.[x - 4]) blocks[y - 6][x - 4].fg = 860;
-    if (blocks[y - 5]?.[x]) blocks[y - 5][x].fg = 120;
-
-    // Crenellations
-    for (let i = -3; i <= 3; i++) {
-      if (blocks[y - 7]?.[x - i]) blocks[y - 7][x - i].fg = (i % 2 === 0) ? 116 : 0;
+  
+    this.addCastleDecorations(blocks, x, y, width, height);
+    
+    // Generate bonus items
+    this.generateBuildingBonus(blocks, x, y, 'castle');
+  }
+  
+  private generateEnhancedHouse(blocks: Block[][], x: number, y: number, config: StructureConfig) {
+    const { width, height } = config;
+    const halfWidth = Math.floor(width / 2);
+  
+    console.log(`Generating house at ${x}, ${y} with size ${width}x${height}`);
+  
+    // Foundation and floor
+    for (let i = -halfWidth; i <= halfWidth; i++) {
+      if (blocks[y]?.[x + i]) {
+        blocks[y][x + i].fg = this.getRandomBlock(cnf.house.foundation);
+      }
     }
-
-    // Drawbridge and entrance
-    for (let i = -1; i <= 1; i++) {
-      if (blocks[y]?.[x - i]) blocks[y][x - i].fg = 102;
+  
+    // Walls and windows
+    for (let j = 1; j < height; j++) {
+      for (let i = -halfWidth; i <= halfWidth; i++) {
+        if (blocks[y - j]?.[x + i]) {
+          // Corner walls
+          if (i === -halfWidth || i === halfWidth) {
+            blocks[y - j][x + i].fg = this.getRandomBlock(cnf.house.walls);
+          }
+          // Windows
+          else if (j === 2 && i !== 0 && Math.abs(i) > 1) {
+            blocks[y - j][x + i].fg = this.getRandomBlock(cnf.house.windows);
+          }
+          // Interior walls
+          else if (i === -halfWidth || i === halfWidth) {
+            blocks[y - j][x + i].fg = this.getRandomBlock(cnf.house.walls);
+          }
+        }
+      }
     }
-    if (blocks[y - 1]?.[x]) blocks[y - 1][x].fg = 684;
+  
+    // Roof
+    for (let i = -(halfWidth + 1); i <= halfWidth + 1; i++) {
+      if (blocks[y - height]?.[x + i]) {
+        blocks[y - height][x + i].fg = this.getRandomBlock(cnf.house.roof);
+      }
+    }
+  
+    // Door
+    if (blocks[y - 1]?.[x]) {
+      blocks[y - 1][x].fg = this.getRandomBlock(cnf.house.door);
+    }
+  
+    // Interior decoration
+    if (blocks[y - 1]?.[x - 1] && this.randoms.general() > 0.5) {
+      blocks[y - 1][x - 1].fg = this.getRandomBlock(cnf.house.furniture);
+    }
+    
+    // Generate bonus items
+    this.generateBuildingBonus(blocks, x, y, 'house');
+  }
+  
+  private addCastleDecorations(blocks: Block[][], x: number, y: number, width: number, height: number) {
+    const halfWidth = Math.floor(width / 2);
+  
+    // Add battlements with varying heights
+    for (let i = -halfWidth; i <= halfWidth; i++) {
+      const heightVar = Math.floor(this.randoms.general() * 2);
+      if (blocks[y - height - heightVar]?.[x + i]) {
+        blocks[y - height - heightVar][x + i].fg = i % 2 === 0 ? 
+          this.getRandomBlock(cnf.castle.towers) : 0;
+      }
+    }
+  
+    // Add flags and decorations
+    [-halfWidth, halfWidth].forEach(offset => {
+      if (blocks[y - height + 1]?.[x + offset]) {
+        blocks[y - height + 1][x + offset].fg = cnf.castle.flags[0];
+      }
+      // Add torches near the towers
+      if (blocks[y - Math.floor(height/2)]?.[x + offset]) {
+        blocks[y - Math.floor(height/2)][x + offset].fg = cnf.castle.decoration[1];
+      }
+    });
+  
+    // Grand entrance
+    if (blocks[y - 1]?.[x]) {
+      blocks[y - 1][x].fg = this.getRandomBlock(cnf.castle.gates);
+    }
+  }
+
+  private getRandomBlock(blocks: number[]): number {
+    return blocks[Math.floor(this.randoms.general() * blocks.length)];
+  }
+  
+  private isValidFoundation(blocks: Block[][], x: number, y: number, width: number): boolean {
+    const halfWidth = Math.floor(width / 2);
+    // Check if there's solid ground BELOW the structure (y+1, not y-1)
+    for (let i = -halfWidth - 1; i <= halfWidth + 1; i++) {
+      const checkX = x + i;
+      const checkY = y + 1; // Check the ground below
+      
+      if (checkX < 0 || checkX >= this.width || checkY >= this.height) {
+        return false;
+      }
+      
+      if (!blocks[checkY]?.[checkX]) {
+        return false;
+      }
+      
+      const block = blocks[checkY][checkX];
+      // Must be solid ground (dirt, stone, etc) - not air, water, or decorative items
+      if (block.fg === 0 || 
+          block.flags & TileFlags.WATER ||
+          cnf.grass.land.includes(block.fg) ||
+          cnf.grass.sea.includes(block.fg) ||
+          cnf.tree.seeds.includes(block.fg)) {
+        return false;
+      }
+    }
+    return true;
+  }
+  
+  private smoothTerrain(terrainHeights: number[], startX: number, width: number): void {
+    const endX = startX + width;
+    for (let x = startX; x < endX; x++) {
+      if (x > 0 && x < terrainHeights.length - 1) {
+        const avg = (terrainHeights[x-1] + terrainHeights[x] + terrainHeights[x+1]) / 3;
+        terrainHeights[x] = Math.floor(avg);
+      }
+    }
   }
 
   private generateBiomes(blocks: Block[][], terrainHeights: number[]) {
     const biomeWidth = 50;
     const randomBlocks = [1104, 826, 13202, 1004, 7374];
-
+  
     for (let i = 0; i < this.width; i += biomeWidth) {
-      const biomeType = Math.floor(this.randoms.general() * 3);
+      const biomeRand = this.randoms.general();
+      const biomeType = Math.floor(biomeRand * 3);
       const biomeStart = i;
       const biomeEnd = Math.min(i + biomeWidth, this.width);
-
-      if (biomeType === 1) { // Plains
+      
+      console.log(`Biome ${biomeType} at ${biomeStart} to ${biomeEnd} random ${biomeRand}`);
+  
+      if (biomeType === 0) { // Plains
         this.generatePlains(blocks, biomeStart, biomeEnd, terrainHeights, randomBlocks);
-        if (this.randoms.general() > 0.8) this.tryGenerateStructure(blocks, biomeStart, biomeEnd, terrainHeights, 'house');
-      } else if (biomeType === 2) { // Hills
+        if (this.randoms.general() > 0.7) { // Increased chance
+          this.tryGenerateStructure(blocks, biomeStart, biomeEnd, terrainHeights, 'house');
+        }
+      } else if (biomeType === 1) { // Hills
         this.generateHills(blocks, biomeStart, biomeEnd, terrainHeights);
-        if (this.randoms.general() > 0.7) this.tryGenerateStructure(blocks, biomeStart, biomeEnd, terrainHeights, 'castle');
+        if (this.randoms.general() > 0.8) { // Increased chance
+          this.tryGenerateStructure(blocks, biomeStart, biomeEnd, terrainHeights, 'castle');
+        }
+      } else { // Desert/Temple biome
+        this.generatePlains(blocks, biomeStart, biomeEnd, terrainHeights, randomBlocks);
+        if (this.randoms.general() > 0.8) { // Increased chance
+          this.tryGenerateStructure(blocks, biomeStart, biomeEnd, terrainHeights, 'temple');
+        }
       }
     }
+  }
+  
+  private generateBuildingBonus(blocks: Block[][], x: number, y: number, type: 'house' | 'castle' | 'temple') {
+    const config = cnf[type].config;
+    const bonus = cnf[type].bonus;
+    const halfWidth = Math.floor(config.width / 2);
+    
+    console.log(`Generating bonus items for ${type} at ${x}, ${y}`);
+    
+    // Generate bonus blocks (like mystery blocks)
+    if (bonus.block && this.randoms.general() > 0.3) {
+      const bonusBlock = this.getRandomBlock(bonus.block);
+      const bonusPos = this.findRandomInteriorPosition(blocks, x, y, config, 'block');
+      
+      if (bonusPos) {
+        console.log(`Placing bonus block ${bonusBlock} at ${bonusPos.x}, ${bonusPos.y}`);
+        blocks[bonusPos.y][bonusPos.x].fg = bonusBlock;
+      }
+    }
+    
+    // Generate dropped items
+    if (bonus.dropped && this.randoms.general() > 0.4) {
+      const droppedItem = bonus.dropped[Math.floor(this.randoms.general() * bonus.dropped.length)];
+      const dropPos = this.findRandomInteriorPosition(blocks, x, y, config, 'drop');
+      
+      if (dropPos && droppedItem) {
+        console.log(`Placing dropped item [${droppedItem[0]}, ${droppedItem[1]}] at ${dropPos.x}, ${dropPos.y}`);
+        
+        // Add to world's dropped items
+        if (this.data.dropped) {
+          this.data.dropped.items = [];
+        }
+        
+        this.data.dropped?.items?.push({
+          id: droppedItem[0],
+          amount: droppedItem[1],
+          block: {
+            x: dropPos.x,
+            y: dropPos.y
+          },
+          x: dropPos.x,
+          y: dropPos.y,
+          uid: this.data.dropped?.items?.length || 0
+        });
+      }
+    }
+  }
+
+  private findRandomInteriorPosition(blocks: Block[][], centerX: number, centerY: number, config: StructureConfig, itemType: 'block' | 'drop'): {x: number, y: number} | null {
+    const halfWidth = Math.floor(config.width / 2);
+    const maxAttempts = config.width * config.height;
+    
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      // Generate random position within building bounds
+      const offsetX = Math.floor(this.randoms.general() * (config.width - 2)) - halfWidth + 1; // Avoid walls
+      const offsetY = Math.floor(this.randoms.general() * (config.height - 1)) + 1; // Avoid roof
+      
+      const checkX = centerX + offsetX;
+      const checkY = centerY - offsetY;
+      
+      // Validate position bounds
+      if (checkX < 0 || checkX >= this.width || checkY < 0 || checkY >= this.height) {
+        continue;
+      }
+      
+      if (!blocks[checkY] || !blocks[checkY][checkX]) {
+        continue;
+      }
+      
+      const targetBlock = blocks[checkY][checkX];
+      const blockBelow = blocks[checkY + 1]?.[checkX];
+      
+      if (itemType === 'block') {
+        // For blocks, need empty space with solid ground below
+        if (targetBlock.fg === 0 && blockBelow && blockBelow.fg !== 0) {
+          return { x: checkX, y: checkY };
+        }
+      } else if (itemType === 'drop') {
+        // For dropped items, need floor space (can be on any solid block)
+        if (targetBlock.fg === 0 && blockBelow && blockBelow.fg !== 0) {
+          return { x: checkX, y: checkY };
+        }
+      }
+    }
+    
+    console.log(`Failed to find interior position for ${itemType} in building at ${centerX}, ${centerY}`);
+    return null;
   }
 
   private generatePlains(blocks: Block[][], biomeStart: number, biomeEnd: number, terrainHeights: number[], randomBlocks: number[]) {
     for (let x = biomeStart; x < biomeEnd; x++) {
       for (let y = terrainHeights[x]; y < terrainHeights[x] + 5 && y < this.height; y++) {
         if (blocks[y]?.[x]) {
-          blocks[y][x].fg = this.randoms.general() > 0.2 ? 2 : randomBlocks[randomInt(0, randomBlocks.length)];
+          blocks[y][x].fg = this.randoms.general() > 0.2 ? 2 : randomBlocks[randomInt(randomBlocks.length)];
         }
       }
     }
@@ -514,17 +857,43 @@ export class Forest extends WorldGen {
     }
   }
 
-  private tryGenerateStructure(blocks: Block[][], biomeStart: number, biomeEnd: number, terrainHeights: number[], type: 'house' | 'castle') {
-    const structureX = biomeStart + Math.floor(this.randoms.general() * (biomeEnd - biomeStart - 5)) + 2;
-    const structureY = terrainHeights[structureX] - 1;
-
-    // Check if solid foundation exists
-    const isSolid = Array.from({ length: 5 }, (_, i) => structureX + i)
-      .every(x => blocks[structureY + 1]?.[x] && ![4585, 16, 0, 822].includes(blocks[structureY + 1][x].fg));
-
-    if (isSolid) {
-      this.generateStructure(blocks, structureX, structureY, type);
+  private tryGenerateStructure(blocks: Block[][], biomeStart: number, biomeEnd: number, terrainHeights: number[], type: 'house' | 'castle' | 'temple') {
+    const structureConfig = cnf[type].config;
+    const minSpace = structureConfig.width + 8; // More padding
+    
+    // Ensure we have enough space in the biome
+    if (biomeEnd - biomeStart < minSpace) {
+      console.log(`Not enough space for ${type} in biome ${biomeStart}-${biomeEnd}`);
+      return;
     }
+    
+    // Find suitable location with multiple attempts
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const structureX = biomeStart + Math.floor(this.randoms.general() * (biomeEnd - biomeStart - minSpace)) + Math.floor(minSpace/2);
+      
+      // Make sure we're not too close to edges
+      if (structureX < structureConfig.width/2 || structureX > this.width - structureConfig.width/2) {
+        continue;
+      }
+      
+      const structureY = terrainHeights[structureX] - 1; // Place structure ON the ground, not IN it
+      
+      console.log(`Attempting to place ${type} at ${structureX}, ${structureY}`);
+      
+      // Smooth the terrain around the structure
+      this.smoothTerrain(terrainHeights, structureX - Math.floor(minSpace/2), minSpace);
+      
+      // Check if foundation is valid
+      if (this.isValidFoundation(blocks, structureX, structureY, structureConfig.width)) {
+        console.log(`Generating ${type} at ${structureX}, ${structureY}`);
+        this.generateStructure(blocks, structureX, structureY, type);
+        return; // Success, exit
+      } else {
+        console.log(`Invalid foundation for ${type} at ${structureX}, ${structureY}`);
+      }
+    }
+    
+    console.log(`Failed to place ${type} in biome ${biomeStart}-${biomeEnd} after 5 attempts`);
   }
 
   public generate(): Promise<void> {

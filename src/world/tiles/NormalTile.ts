@@ -24,6 +24,9 @@ export class NormalTile extends Tile {
 
   public async setFlags(): Promise<void> {
     // nothing todo here too :>
+    if (this.block.flags !== undefined) {
+      this.flags |= this.block.flags;
+    }
     return;
   }
 }
