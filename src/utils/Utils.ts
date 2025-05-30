@@ -5,7 +5,7 @@ import { execSync } from "child_process";
 import net from "net";
 import ky from "ky";
 import decompress from "decompress";
-import { ITEMS_DAT_URL, weatherIdMap } from "../Constants";
+import { ActionTypes, ITEMS_DAT_URL, weatherIdMap } from "../Constants";
 import { ItemDefinition, ItemsDatMeta } from "growtopia.js";
 
 __dirname = process.cwd();
@@ -115,56 +115,122 @@ export async function generateItemsEnumDefinition(data: ItemsDatMeta): Promise<v
   }
 
   try {
-    const targetDir = join(__dirname, "src");
-    const targetPath = join(targetDir, "ItemsDefinition.ts");
-    
-    const enumContent = generateEnumContent(data.items);
-    writeFileSync(targetPath, enumContent, "utf-8");
+    const targetDir = join(__dirname, "src", "enums", "items");
+    mkdirSync(targetDir, { recursive: true });
+    const groups = {
+      Foreground: [] as ItemDefinition[],
+      Background: [] as ItemDefinition[],
+      Consumable: [] as ItemDefinition[],
+      Clothes:    [] as ItemDefinition[],
+      Seed:       [] as ItemDefinition[],
+      Platform:   [] as ItemDefinition[],
+      Chemical:   [] as ItemDefinition[],
+      Lock:       [] as ItemDefinition[],
+      Portal:     [] as ItemDefinition[],
+      Weather:    [] as ItemDefinition[],
+      Checkpoint: [] as ItemDefinition[],
+      Other:      [] as ItemDefinition[]
+    };
+
+    // Group items by action type
+    for (const item of data.items) {
+      switch (item.type) {
+        case ActionTypes.FOREGROUND:
+        case ActionTypes.FOREGROUND_WITH_EXTRA_FRAME:
+          groups.Foreground.push(item);
+          break;
+        case ActionTypes.BACKGROUND:
+        case ActionTypes.BACKGD_SFX_EXTRA_FRAME:
+          groups.Background.push(item);
+          break;
+        case ActionTypes.CONSUMABLE:
+          groups.Consumable.push(item);
+          break;
+        case ActionTypes.CLOTHES:
+          groups.Clothes.push(item);
+          break;
+        case ActionTypes.SEED:
+          groups.Seed.push(item);
+          break;
+        case ActionTypes.PLATFORM:
+          groups.Platform.push(item);
+          break;
+        case ActionTypes.CHEMICAL:
+          groups.Chemical.push(item);
+          break;
+        case ActionTypes.LOCK:
+          groups.Lock.push(item);
+          break;
+        case ActionTypes.PORTAL:
+          groups.Portal.push(item);
+          break;
+        case ActionTypes.WEATHER_MACHINE:
+        case ActionTypes.WEATHER_SPECIAL:
+        case ActionTypes.WEATHER_SPECIAL2:
+        case ActionTypes.WEATHER_INFINITY:
+          groups.Weather.push(item);
+          break;
+        case ActionTypes.CHECKPOINT:
+          groups.Checkpoint.push(item);
+          break;
+        default:
+          groups.Other.push(item);
+          break;
+      }
+    }
+
+    for (const [groupName, items] of Object.entries(groups)) {
+      if (items.length === 0) continue;
+
+      const lines = [
+        '// Auto-generated file',
+        `// Generated at: ${new Date().toISOString()}`,
+        '',
+        `export enum ITEMID_${groupName.toUpperCase()} {`
+      ];
+
+      const usedKeys = new Set<string>();
+      
+      for (const item of items) {
+        if (!item.name) {
+          console.warn(`Skipping item with id ${item.id}: missing name`);
+          continue;
+        }
+        
+        let enumKey = item.name
+          .toUpperCase()
+          .replace(/[^A-Z0-9_]/g, '_')
+          .replace(/_{2,}/g, '_')
+          .replace(/^_+|_+$/g, '');
+
+        // Handle numeric names by adding prefix
+        if (/^\d/.test(enumKey)) {
+          enumKey = `ITEM_${enumKey}`;
+        }
+
+        if (!enumKey) {
+          console.warn(`Skipping item "${item.name}": invalid enum key after sanitization`);
+          continue;
+        }
+        
+        if (usedKeys.has(enumKey)) {
+          enumKey = `${enumKey}_${item.id}`;
+        }
+        
+        usedKeys.add(enumKey);
+        lines.push(`  ${enumKey} = ${item.id},`);
+      }
+
+      lines.push('}');
+
+      const targetPath = join(targetDir, `ItemsID${groupName}.ts`);
+      writeFileSync(targetPath, lines.join('\n'), "utf-8");
+    }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     consola.error("Failed to generate items definition:", errorMessage);
     throw error;
   }
-}
-
-function generateEnumContent(items: Array<ItemDefinition>): string {
-  const lines = ["// Auto generation file\nexport enum ITEM_ID {"];
-  const usedKeys = new Set<string>();
-  
-  for (const item of items) {
-    if (!item.name) {
-      console.warn(`Skipping item with id ${item.id}: missing name`);
-      continue;
-    }
-    
-    let enumKey = sanitizeEnumKey(item.name);
-    if (!enumKey) {
-      console.warn(`Skipping item "${item.name}": invalid enum key after sanitization`);
-      continue;
-    }
-    
-    if (usedKeys.has(enumKey)) {
-      const originalKey = enumKey;
-      enumKey = `${enumKey}_${item.id}`;
-      // console.warn(`Duplicate enum key "${originalKey}" for item "${item.name}" (id: ${item.id}), using "${enumKey}" instead`);
-    }
-    
-    usedKeys.add(enumKey);
-    lines.push(`  ${enumKey} = ${item.id},`);
-  }
-
-  lines.push("}");
-  return lines.join("\n");
-}
-
-function sanitizeEnumKey(name: string): string {
-  return name
-    .trim()
-    .replace(/[^a-zA-Z0-9_]/g, "_") // Replace non-alphanumeric chars with underscore
-    .replace(/_+/g, "_") // Collapse multiple underscores
-    .replace(/^_+|_+$/g, "") // Remove leading/trailing underscores
-    .replace(/^(\d)/, "_$1") // Prefix with underscore if starts with number
-    .toUpperCase();
 }
 
 export async function downloadMkcert() {
