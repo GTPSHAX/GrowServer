@@ -233,16 +233,6 @@ export async function generateItemsEnumDefinition(data: ItemsDatMeta): Promise<v
   }
 }
 
-function sanitizeEnumKey(name: string): string {
-  return name
-    .trim()
-    .replace(/[^a-zA-Z0-9_]/g, "_") // Replace non-alphanumeric chars with underscore
-    .replace(/_+/g, "_") // Collapse multiple underscores
-    .replace(/^_+|_+$/g, "") // Remove leading/trailing underscores
-    .replace(/^(\d)/, "_$1") // Prefix with underscore if starts with number
-    .toUpperCase();
-}
-
 export async function downloadMkcert() {
   const checkPlatform = `${process.platform}-${process.arch}`;
   const name =
