@@ -10,7 +10,7 @@ build
 .cache
 data.db
 data
-src/enums/items
+src/defs/items
 
 
 
